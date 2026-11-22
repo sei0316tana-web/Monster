@@ -328,12 +328,16 @@ function loadBlob(blob,fresh){
 async function restoreLast(){const b=await idb.get('last');if(b){loadBlob(b,false);return true}toast('前回の画像がありません');return false}
 const showStart=()=>{$('start').style.display='flex';heroGo()},hideStart=()=>{$('start').style.display='none';heroStop()};
 /* ---- layout ---- */
-function fit(){const w=Math.min(innerWidth,innerHeight*W/H),h=w*H/W,d=window.devicePixelRatio||1;
- c.style.width=w+'px';c.style.height=h+'px';c.width=w*d;c.height=h*d;S=c.width/W;draw()}
+function fit(){const iw=innerWidth,ih=innerHeight,F=st.F,d=window.devicePixelRatio||1;
+ /* fill the width and crop the useless top/bottom of the screenshot so the field stays as large as possible */
+ const rb=hide?110:330;let s=Math.min(iw/W,(ih-95-rb)/F.h);s=Math.max(s,Math.min(iw/W,ih/H));
+ const w=W*s,h=H*s;let sh=0;
+ if(h>ih){sh=Math.min(Math.max((F.y+F.h)*s-(ih-rb),0),Math.max(F.y*s-95,0));sh=Math.min(sh,h-ih)}
+ c.style.width=w+'px';c.style.height=h+'px';c.style.marginTop=(-sh)+'px';c.width=Math.round(w*d);c.height=Math.round(h*d);S=c.width/W;draw()}
 function setTab(t,prog){
  if(!prog&&t===st.tab&&t!=='aim')collapsed=!collapsed;else collapsed=false;
  if(t!=='aim')lastTab=t;
- hide=(t==='aim');st.tab=t;st.mode=(t==='put'||t==='frm')?t:'aim';sync();draw()}
+ hide=(t==='aim');st.tab=t;st.mode=(t==='put'||t==='frm')?t:'aim';sync();fit()}
 const NAMES={enemy:'敵',wall:'ブロック',dw:'ダメージW',gb:'重力B'};
 function sync(){
  document.querySelectorAll('#tabs [data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===st.tab&&!hide));
@@ -421,7 +425,7 @@ function trace(){
 }
 const COL={enemy:'rgba(255,70,70,.4)',wall:'rgba(150,160,175,.6)',dw:'rgba(255,150,0,.5)',gb:'rgba(160,90,255,.4)'};
 function bpath(b){g.beginPath();if(b.k==='enemy'){const R0=b.w/2;for(let k=0;k<16;k++){const a=k*Math.PI/8,px=b.x+R0+R0*Math.cos(a),py=b.y+R0+R0*Math.sin(a);k?g.lineTo(px,py):g.moveTo(px,py)}g.closePath()}else if(b.k==='gb')g.arc(b.x+b.w/2,b.y+b.h/2,b.w/2,0,7);else g.rect(b.x,b.y,b.w,b.h)}
-let curFree=-1;function updateFree(){const fb=(st.F.y+st.F.h)/H*c.clientHeight,v=Math.round(innerHeight-fb-10);if(v!==curFree){curFree=v;document.documentElement.style.setProperty('--free',v+'px')}}
+let curFree=-1;function updateFree(){const fb=c.getBoundingClientRect().top+(st.F.y+st.F.h)/H*c.clientHeight,v=Math.round(innerHeight-fb-10);if(v!==curFree){curFree=v;document.documentElement.style.setProperty('--free',v+'px')}}
 function draw(){updateFree();$('info').style.visibility=(drag&&st.mode!=='aim')?'hidden':'';g.setTransform(1,0,0,1,0,0);g.fillStyle='#000';g.fillRect(0,0,c.width,c.height);g.setTransform(S,0,0,S,0,0);scene();drawLoupe()}
 function drawLoupe(){if(!loupe)return;const LR=190,Z=1.7;let lx=Math.min(W-LR-10,Math.max(LR+10,loupe.x)),ly=loupe.y-380;if(ly<LR+10)ly=loupe.y+380;
  g.save();g.beginPath();g.arc(lx,ly,LR,0,7);g.clip();g.translate(lx,ly);g.scale(Z,Z);g.translate(-loupe.x,-loupe.y);scene();g.restore();
